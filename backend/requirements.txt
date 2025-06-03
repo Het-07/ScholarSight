@@ -1,0 +1,14 @@
+flask
+python-multipart
+pypdf
+langchain
+langchain-community
+qdrant-client
+numpy
+scipy
+pydantic
+python-dotenv
+pytest
+click
+gunicorn
+flask_cors
