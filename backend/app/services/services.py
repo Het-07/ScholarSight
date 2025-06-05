@@ -1,18 +1,16 @@
 import os
 import logging
-from langchain_community.embeddings import OllamaEmbeddings 
-
+from flask import jsonify, request
 from pypdf import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import Qdrant
+from langchain_core.documents import Document
+from qdrant_client import QdrantClient
+from qdrant_client.http.models import Distance, VectorParams
 from langchain_community.llms import Ollama
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
-from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance, VectorParams
-from dotenv import load_dotenv
-
-load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,104 +20,76 @@ def get_qdrant_client():
     QDRANT_PORT = int(os.getenv("qdrant_port", "6333"))
     return QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
 
-def extract_page_text(page):
-    """Extract text from a single page"""
+def process_pdf_content(file):
     try:
-        return page.extract_text()
-    except Exception:
-        return ""
-
-def process_pdf_content(pdf_file):
-    try:
-        reader = PdfReader(pdf_file)
-        
-        chunk_size = 10 
-        text_contents = []
-        
-        for i in range(0, len(reader.pages), chunk_size):
-            chunk_pages = reader.pages[i:i + chunk_size]
-            chunk_texts = []
-            for page in chunk_pages:
-                chunk_texts.append(extract_page_text(page))
-            text_contents.extend(chunk_texts)
-        
-        text_content = "\n".join(filter(None, text_contents))
-        
-        # Optimized text splitter configuration
+        pdf_reader = PdfReader(file)
+        text_content = ""
+        for page in pdf_reader.pages:
+            text_content += page.extract_text()
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000, 
-            chunk_overlap=100, 
-            length_function=len,
-            separators=["\n\n", "\n", ".", "!", "?", " ", ""],  
-            is_separator_regex=False
+            chunk_size=1000,
+            chunk_overlap=200,
+            length_function=len
         )
-        
         chunks = text_splitter.split_text(text_content)
-        return chunks
-
+        return [Document(page_content=chunk) for chunk in chunks]
     except Exception as e:
         logger.error(f"Error processing PDF: {str(e)}")
         raise ValueError(f"Could not process PDF file: {str(e)}")
 
-class UploadService:
-    def __init__(self):
-        self.client = get_qdrant_client()
-        self.embeddings = OllamaEmbeddings(
-            base_url=os.getenv("ollama_host", "http://localhost:11434"),
-            model="mistral:7b"
-        )
+def index_documents_to_qdrant(documents, collection_name):
+    client = get_qdrant_client()
+    try:
+        if client.get_collection(collection_name) is not None:
+            client.delete_collection(collection_name)
+    except:
+        pass
 
-    def index_documents(self, chunks, collection_name):
-        try:
-            # Recreate collection
-            try:
-                self.client.delete_collection(collection_name)
-            except:
-                pass
+    client.create_collection(
+        collection_name=collection_name,
+        vectors_config=VectorParams(size=4096, distance=Distance.COSINE),
+        hnsw_config={"m": 16, "ef_construct": 100}
+    )
 
-            # Create collection
-            self.client.create_collection(
-                collection_name=collection_name,
-                vectors_config=VectorParams(
-                    size=4096,
-                    distance=Distance.COSINE
-                ),
-                hnsw_config={
-                    "m": 16,
-                    "ef_construct": 100,
-                }
-            )
+    embedding_model = OllamaEmbeddings(
+        base_url=os.getenv("ollama_host", "http://localhost:11434"),
+        model=os.getenv("MODEL_NAME", "mistral:7b")
+    )
 
-            # Create vector store
-            vectorstore = Qdrant(
-                client=self.client,
-                collection_name=collection_name,
-                embeddings=self.embeddings
-            )
+    vectorstore = Qdrant(
+        client=client,
+        collection_name=collection_name,
+        embeddings=embedding_model,
+    )
+    vectorstore.add_documents(documents)
+    return {"status": "success", "collection": collection_name}
 
-            # Add documents
-            vectorstore.add_texts(chunks)
-            
-            return {"status": "success", "chunks_indexed": len(chunks)}
+def process_upload():
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No PDF file provided'}), 400
 
-        except Exception as e:
-            logger.error(f"Error indexing documents: {str(e)}")
-            raise
+        file = request.files['file']
+        collection_name = request.form.get('collection_name', 'pdf_collection')
+        documents = process_pdf_content(file)
+        result = index_documents_to_qdrant(documents, collection_name)
+        return jsonify(result), 200
+
+    except Exception as e:
+        logger.error(f"Error processing upload: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 class QueryService:
-    def __init__(self, collection_name):
-        self.collection_name = collection_name
-        self.client = get_qdrant_client()
-        self.setup_components()
+    def __init__(self, collection_name=None):
+        self.collection_name = collection_name or "pdf_collection"
+        self.ollama_host = os.environ.get("ollama_host", "http://localhost:11434")
+        self.setup_qdrant()
+        self.setup_embeddings()
+        self.setup_llm()
 
-    def setup_components(self):
-        self.embeddings = OllamaEmbeddings(
-            model=os.getenv("MODEL_NAME", "mistral:7b"),
-            base_url=os.getenv("ollama_host", "http://localhost:11434")
-        )
-        
+    def setup_llm(self):
         self.llm = Ollama(
-            base_url=os.getenv("ollama_host", "http://localhost:11434"),
+            base_url=self.ollama_host,
             model=os.getenv("MODEL_NAME", "mistral:7b"),
             temperature=0.1,
             num_ctx=4096,
@@ -127,16 +97,26 @@ class QueryService:
             top_p=0.9,
             repeat_penalty=1.1
         )
+    def setup_qdrant(self):
+        QDRANT_HOST = os.environ.get("qdrant_host", "localhost")
+        QDRANT_PORT = int(os.environ.get("qdrant_port", "6333"))
+        self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+        logger.info(f"Connected to Qdrant at {QDRANT_HOST}:{QDRANT_PORT}")
 
-        self.vector_store = Qdrant(
+    def setup_embeddings(self):
+        self.embedding_model = OllamaEmbeddings(
+            base_url=os.getenv("ollama_host", "http://localhost:11434"),
+            model=os.getenv("MODEL_NAME", "mistral:7b")
+        )
+        self.vectorstore = Qdrant(
             client=self.client,
             collection_name=self.collection_name,
-            embeddings=self.embeddings
+            embeddings=self.embedding_model,
         )
+        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3, "score_threshold": 0.7})
 
-    def process_query(self, query_text):
-        try:
-            prompt_template = """SYSTEM: You are a highly precise research assistant powered by Mistral-7B. Your task is to provide accurate, concise answers based on the given context.
+    def process_query(self, user_query):
+        prompt_template = """SYSTEM: You are a highly precise research assistant powered by Mistral-7B. Your task is to provide accurate, concise answers based on the given context.
 
 CONTEXT: {context}
 
@@ -150,36 +130,24 @@ RULES:
    - Low: Say "Based on the available context, I cannot provide a definitive answer"
    - None: Say "This information is not found in the provided context"
 4. FORMAT:
-   - Keep responses under 3 sentences
+   - Keep responses under 5 sentences
    - Use clear, academic language
    - Include relevant quotes if available (using quotation marks)
 5. SCOPE: Stay strictly within the context boundary
 
 ANSWER:"""
 
-            PROMPT = PromptTemplate(
-                template=prompt_template,
-                input_variables=["context", "question"]
-            )
+        PROMPT = PromptTemplate(
+            template=prompt_template,
+            input_variables=["context", "question"]
+        )
 
-            qa_chain = RetrievalQA.from_chain_type(
-                llm=self.llm,
-                chain_type="stuff",
-                retriever=self.vector_store.as_retriever(
-                    search_kwargs={
-                        "k": 3,  
-                        "score_threshold": 0.7 
-                    }
-                ),
-                chain_type_kwargs={
-                    "prompt": PROMPT,
-                    "verbose": False
-                }
-            )
+        qa_chain = RetrievalQA.from_chain_type(
+            llm=self.llm,
+            chain_type="stuff",
+            retriever=self.retriever,
+            chain_type_kwargs={"prompt": PROMPT, "verbose": False}
+        )
 
-            response = qa_chain.invoke({"query": query_text})
-            return response["result"]
-
-        except Exception as e:
-            logger.error(f"Error processing query: {str(e)}")
-            raise
+        response = qa_chain.invoke({"query": user_query})
+        return response["result"] + "\n\nSource: " + self.collection_name

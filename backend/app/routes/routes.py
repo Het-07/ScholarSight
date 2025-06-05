@@ -1,61 +1,37 @@
 from flask import Blueprint, request, jsonify, current_app
 import logging
-from app.services.services import process_pdf_content, UploadService, QueryService
+from app.services.services import process_pdf_content,process_upload, QueryService
 
+# this is the blueprint for storing the views.
 main_bp = Blueprint('main', __name__)
-upload_service = UploadService()
 
-@main_bp.route('/health')
+@main_bp.route('/')
+def hello_world():
+    return get_hello_world()
+
+
+@main_bp.route('/upload', methods=['POST'])
+def upload():
+    return process_upload()
+
+@main_bp.route('/health', methods=['GET'])
 def health_check():
     return {"status": "healthy"}, 200
 
-@main_bp.route('/upload', methods=['POST']) 
-def upload():
-    try:
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file provided'}), 400
-            
-        file = request.files['file']
-        if not file.filename:
-            return jsonify({'error': 'No file selected'}), 400
-            
-        if not file.filename.lower().endswith('.pdf'):
-            return jsonify({'error': 'Only PDF files are allowed'}), 400
-            
-        collection_name = request.form.get('collection_name', 'pdf_collection')
-        
-        logging.info(f"Processing upload for file: {file.filename}, collection: {collection_name}")
-        
-        chunks = process_pdf_content(file)
-        
-        if not chunks:
-            return jsonify({'error': 'No content could be extracted from the PDF'}), 400
-        
-        result = upload_service.index_documents(chunks, collection_name)
-        logging.info(f"Successfully processed file with {len(chunks)} chunks")
-        
-        return jsonify(result), 200
-        
-    except Exception as e:
-        logging.error(f"Upload error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@main_bp.route('/query', methods=['POST']) 
-def query():
+@main_bp.route('/query', methods=['POST'])
+def process_query():
     try:
         data = request.get_json()
         if not data or 'query' not in data:
-            return jsonify({"error": "Missing query"}), 400
+            return jsonify({"error": "Missing query in request"}), 400
         
         query_text = data['query']
-        collection_name = data.get('collection_name', 'pdf_collection')
+        collection_name = data.get('collection_name', 'sql_schema_chunks')
         
-        # Create query service instance
-        query_service = QueryService(collection_name)
+        # Create a new QueryService instance with the specified collection
+        query_service = QueryService(collection_name=collection_name)
         result = query_service.process_query(query_text)
         
         return jsonify({"result": result}), 200
-        
     except Exception as e:
-        print(f"Query error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
