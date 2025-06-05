@@ -1,5 +1,5 @@
 resource "aws_amplify_app" "frontend" {
-  name         = "scholar"
+  name         = "ScholarSight"
   repository   = "git@github.com:Het-07/ScholarSight.git"
   access_token = var.github_access_token
 
