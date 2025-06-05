@@ -63,8 +63,6 @@ resource "aws_instance" "app_model" {
                     systemctl start docker
                     systemctl enable docker
 
-                     
-
                     # Install AWS CLI and jq if not already installed
                     echo "Installing AWS CLI and jq..."
                     yum install -y aws-cli jq
@@ -83,8 +81,6 @@ resource "aws_instance" "app_model" {
                     qdrant_host=$(echo "$SECRET_JSON" | jq -r '.qdrant_host // "6333"')
                     qdrant_port=$(echo "$SECRET_JSON" | jq -r '.qdrant_port // "6333"')
 
-                    
-
                     echo "✅ Using ollama_host: $ollama_host"
                     echo "✅ Using QDRANT_HOST: $ollama_model_name" 
                     echo "✅ Using QDRANT_PORT: $qdrant_host"
@@ -101,13 +97,8 @@ resource "aws_instance" "app_model" {
                     -e qdrant_port=$qdrant_port \
                     patelhet34/scholarsight
                   
-        
-                   
-                    
                     qdrant_port=$(echo "$SECRET_JSON" | jq -r '.qdrant_port // "6333"')
 
-
-                   
                     echo "Installing Ollama..."
                     curl -fsSL https://ollama.com/install.sh | sh
 
@@ -204,11 +195,6 @@ resource "aws_iam_instance_profile" "llm_instance_profile" {
   role = aws_iam_role.llm_instance_role.name
 }
 
- 
-
-
-
-
 # Security Group for the Load Balancer
 resource "aws_security_group" "llm_lb_security_group" {
   name        = "llm-lb-security-group"
@@ -256,7 +242,6 @@ resource "aws_lb" "llm_lb" {
     Name = "LLM-Load-Balancer"
   }
 }
-
 
 # Target Group for LLM instances
 resource "aws_lb_target_group" "llm_target_group" {

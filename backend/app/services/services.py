@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 from flask import jsonify, request
 from pypdf import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
