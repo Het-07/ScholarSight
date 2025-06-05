@@ -5,11 +5,6 @@ from app.services.services import process_pdf_content,process_upload, QueryServi
 # this is the blueprint for storing the views.
 main_bp = Blueprint('main', __name__)
 
-@main_bp.route('/')
-def hello_world():
-    return get_hello_world()
-
-
 @main_bp.route('/upload', methods=['POST'])
 def upload():
     return process_upload()

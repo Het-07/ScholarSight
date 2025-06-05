@@ -93,7 +93,7 @@ class QueryService:
             model=os.getenv("MODEL_NAME", "mistral:7b"),
             temperature=0.1,
             num_ctx=4096,
-            top_k=10,
+            top_k=20,
             top_p=0.9,
             repeat_penalty=1.1
         )
@@ -113,7 +113,7 @@ class QueryService:
             collection_name=self.collection_name,
             embeddings=self.embedding_model,
         )
-        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3, "score_threshold": 0.7})
+        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
 
     def process_query(self, user_query):
         prompt_template = """SYSTEM: You are a highly precise research assistant powered by Mistral-7B. Your task is to provide accurate, concise answers based on the given context.
@@ -150,4 +150,4 @@ ANSWER:"""
         )
 
         response = qa_chain.invoke({"query": user_query})
-        return response["result"] + "\n\nSource: " + self.collection_name
+        return response["result"]  
