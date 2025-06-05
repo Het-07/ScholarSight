@@ -37,10 +37,12 @@ def process_pdf_content(pdf_file):
             raise ValueError("No text could be extracted from the PDF.")
         full_text = "\n".join(text_content)
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1800,
+            chunk_size=2500,
             chunk_overlap=200,
             length_function=len,
+            separators=["\n\n", "\n", ". ", " "]
         )
+
         chunks = text_splitter.split_text(full_text)
         logger.info(f"Extracted {len(chunks)} chunks from PDF.")
         return [Document(page_content=chunk) for chunk in chunks]
@@ -119,15 +121,15 @@ CONTEXT: {context}
 QUERY: {question}
 
 RULES:
-1. ACCURACY: Only use information explicitly stated in the context
-2. PRECISION: Be direct and specific in your response
+1. ACCURACY: Only use information from the CONTEXT
+2. PRECISION: Be SPECIFIC in your response
 3. CONFIDENCE:
    - High: State the answer confidently
    - Low: Say "Based on the available context, I cannot provide a definitive answer"
    - None: Say "This information is not found in the provided context"
 4. FORMAT:
-   - Keep responses under 3 sentences
-   - Use clear, academic language
+   - Keep responses under 5 sentences
+   - Use clear, ACADEMIC language
    - Include relevant quotes if available (using quotation marks)
 5. SCOPE: Stay strictly within the context boundary
 
@@ -144,6 +146,7 @@ ANSWER:"""
                 retriever=self.vector_store.as_retriever(
                     search_kwargs={
                         "k": 3,
+                        "ef_search": 64,
                     }
                 ),
                 chain_type_kwargs={
