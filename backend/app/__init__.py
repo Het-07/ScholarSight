@@ -5,15 +5,14 @@ from app.routes.routes import main_bp
 def create_app():
     app = Flask(__name__)
     
+    app.register_blueprint(main_bp, url_prefix='/api')
+
     # Configure CORS with more explicit settings
     CORS(app, resources={r"/*": {
         "origins": "*",
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization", "Accept"]
     }})
-    
-    
-    app.register_blueprint(main_bp, url_prefix='/api')
     
     return app
 

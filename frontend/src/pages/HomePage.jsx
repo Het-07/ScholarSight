@@ -39,14 +39,11 @@ const HomePage = () => {
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
-    console.log("File selected:", file); // Debug log
-
     if (file) {
       if (file.type === "application/pdf") {
         if (file instanceof File) {
           setSelectedFile(file);
           setError("");
-          console.log("Valid PDF file selected:", file.name, file.size);
         } else {
           setError("Invalid file object");
         }
@@ -55,29 +52,6 @@ const HomePage = () => {
       }
     }
   };
-
-  // const handleUpload = async () => {
-  //   if (!selectedFile || !collectionName.trim()) return;
-
-  //   setIsProcessing(true);
-  //   setError("");
-
-  //   try {
-  //     console.log("Starting upload...", selectedFile.name);
-  //     const result = await uploadPDF(selectedFile, collectionName.trim());
-  //     console.log("Upload successful:", result);
-
-  //     if (result.status === "success") {
-  //       setTimeout(handleProcessingComplete, 3000);
-  //     } else {
-  //       throw new Error(result.error || "Upload failed");
-  //     }
-  //   } catch (err) {
-  //     console.error("Upload error:", err); // Debug log
-  //     setError(err.message);
-  //     setIsProcessing(false);
-  //   }
-  // };
 
   const handleUpload = async () => {
     if (!selectedFile || !collectionName.trim()) {
@@ -89,12 +63,8 @@ const HomePage = () => {
     setError("");
 
     try {
-      console.log("Starting upload...", selectedFile.name);
       const result = await uploadPDF(selectedFile, collectionName.trim());
-      console.log("Upload successful:", result);
-
       if (result.status === "success") {
-        // Show success notification (mimicking friend's approach)
         const notification = document.createElement("div");
         notification.className =
           "fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded flex items-center shadow-lg transition-all duration-500";

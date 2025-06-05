@@ -114,8 +114,8 @@ class QueryService:
 
     def setup_components(self):
         self.embeddings = OllamaEmbeddings(
-            base_url=os.getenv("ollama_host", "http://localhost:11434"),
-            model=os.getenv("MODEL_NAME", "mistral:7b")
+            model=os.getenv("MODEL_NAME", "mistral:7b"),
+            base_url=os.getenv("ollama_host", "http://localhost:11434")
         )
         
         self.llm = Ollama(
@@ -167,8 +167,8 @@ ANSWER:"""
                 chain_type="stuff",
                 retriever=self.vector_store.as_retriever(
                     search_kwargs={
-                        "k": 3,  # Reduced for more focused context
-                        "score_threshold": 0.7  # Add relevance threshold
+                        "k": 3,  
+                        "score_threshold": 0.7 
                     }
                 ),
                 chain_type_kwargs={
