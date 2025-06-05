@@ -23,15 +23,19 @@ def get_qdrant_client():
 def process_pdf_content(file):
     try:
         pdf_reader = PdfReader(file)
-        text_content = ""
+        text_content = []
         for page in pdf_reader.pages:
-            text_content += page.extract_text()
+            text = page.extract_text()
+            if text:
+                text_content.append(text)
+
+        full_text = "\n".join(text_content)
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
+            chunk_size=1800,
             chunk_overlap=200,
             length_function=len
         )
-        chunks = text_splitter.split_text(text_content)
+        chunks = text_splitter.split_text(full_text)
         return [Document(page_content=chunk) for chunk in chunks]
     except Exception as e:
         logger.error(f"Error processing PDF: {str(e)}")
@@ -62,7 +66,8 @@ def index_documents_to_qdrant(documents, collection_name):
         embeddings=embedding_model,
     )
     vectorstore.add_documents(documents)
-    return {"status": "success", "collection": collection_name}
+    elapsed = time.time() - start_time
+    return {"status": "success", "collection": collection_name, "chunks_indexed": len(documents), "elapsed_time": elapsed}
 
 def process_upload():
     try:
@@ -116,26 +121,20 @@ class QueryService:
         self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
 
     def process_query(self, user_query):
-        prompt_template = """SYSTEM: You are a highly precise research assistant powered by Mistral-7B. Your task is to provide accurate, concise answers based on the given context.
+        prompt_template = """
+You are an expert assistant. Use only the information in the CONTEXT to answer the QUESTION as precisely as possible.
+- Quote exact phrases or facts from the context if helpful.
+- If the answer is only partially present, respond with what is found and say "The context does not fully specify."
+- If the answer is not present at all, reply: "The answer is not found in the provided context."
 
-CONTEXT: {context}
+CONTEXT:
+{context}
 
-QUERY: {question}
+QUESTION:
+{question}
 
-RULES:
-1. ACCURACY: Only use information explicitly stated in the context
-2. PRECISION: Be direct and specific in your response
-3. CONFIDENCE:
-   - High: State the answer confidently
-   - Low: Say "Based on the available context, I cannot provide a definitive answer"
-   - None: Say "This information is not found in the provided context"
-4. FORMAT:
-   - Keep responses under 5 sentences
-   - Use clear, academic language
-   - Include relevant quotes if available (using quotation marks)
-5. SCOPE: Stay strictly within the context boundary
-
-ANSWER:"""
+Answer:
+"""
 
         PROMPT = PromptTemplate(
             template=prompt_template,
