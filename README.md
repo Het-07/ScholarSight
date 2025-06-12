@@ -77,64 +77,49 @@ ScholarSight is an intelligent academic research assistant that employs RAG (Ret
 
 ### Local Development
 
-1. **Clone the repository**
+**Clone the repository**
 
-   ```bash
-   git clone https://github.com/yourusername/ScholarSight.git
-   cd ScholarSight
-   ```
+```bash
+git clone https://github.com/Het-07/ScholarSight
+cd ScholarSight
+```
 
-2. **Backend Setup**
+**Backend Setup**
 
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
-   # Start Qdrant (requires Docker)
-   docker run -p 6333:6333 qdrant/qdrant
+# Start Qdrant (requires Docker)
+docker run -p 6333:6333 qdrant/qdrant
 
-   # Start Ollama
-   ollama serve
+# Start Ollama
+ollama serve
 
-   # Run the application
-   python run.py
-   ```
+# Run the application
+python run.py
+```
 
-3. **Frontend Setup**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+**Frontend Setup**
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ### AWS Deployment
 
-1. **Configure AWS**
+**Deploy using Terraform**
 
-   ```bash
-   aws configure  # Enter credentials from AWS Academy
-   ```
-
-2. **Deploy using Terraform**
-
-   ```bash
-   cd terraform
-   terraform init
-   terraform plan
-   terraform apply
-   ```
-
-3. **Upload backend code to EC2**
-
-   ```bash
-   scp -i <key.pem> -r ../backend/ ec2-user@<EC2_PUBLIC_IP>:/home/ec2-user/
-   ```
-
-4. **Access the application**
-   - Backend API: `http://<EC2_PUBLIC_IP>:5000/api`
-   - Frontend: Deploy separately or configure for hosting
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
 
 ## About
 
