@@ -1,206 +1,141 @@
-# ScholarSight
+# ScholarSight - Academic Research Assistant
 
-## Overview
+## Project Overview
 
-ScholarSight is a comprehensive academic research management platform designed to help researchers, students, and academics efficiently organize, discover, and collaborate on scholarly work. The application streamlines the process of finding, saving, and analyzing research papers while providing powerful collaborative features.
+ScholarSight is an intelligent academic research assistant that employs RAG (Retrieval-Augmented Generation) technology to help researchers efficiently process, analyze, and query academic papers. The system can ingest PDF documents, extract and index their content, and provide accurate answers to complex queries about the research material.
 
-![ScholarSight Logo](./documentation/images/logo.png)
+## Architecture Design
 
-## Features
+![Architecture Design](./documentation/Final%20Architecture.png)
 
-### User Authentication & Profiles
+## Data Sequence Diagram - UML
 
-- Secure login and registration
-- Customizable user profiles
-- Academic interest management
+![Data Sequence Diagram](./documentation/UML%20DIAGRAM.png)
 
-### Research Paper Management
+### Component Interaction Flow
 
-- Save and organize research papers
-- Create custom collections and tags
-- Track reading progress
-- Add personal notes and annotations
+1. User uploads PDFs or sends queries through the React frontend
+2. Flask backend processes these requests and manages document processing
+3. Documents are processed, chunked, and stored in Qdrant vector database
+4. Queries are processed by the RAG engine using Ollama for LLM capabilities
+5. Results are returned to frontend for display
+6. AWS services manage infrastructure, storage, and monitoring
 
-### Search & Discovery
+## Tech Stack
 
-- Advanced search functionality across multiple academic databases
-- Citation tracking
-- Research recommendations based on user interests
-- Filter by publication date, author, journal, and more
+### Frontend
 
-### Collaboration Tools
+- **React**: UI framework for building interactive interfaces
+- **Vite**: Next-generation frontend tooling for faster development
+- **Tailwind CSS**: For responsive design (inferred)
 
-- Share papers and collections with colleagues
-- Discussion threads on specific papers
-- Collaborative note-taking
-- Team workspaces
+### Backend
 
-### Analytics & Insights
+- **Flask**: Python web framework for API endpoints
+- **LangChain**: Framework for LLM applications
+- **PyPDF2/PDFMiner**: PDF text extraction utilities
+- **NLTK/SpaCy**: NLP processing libraries
 
-- Citation metrics and impact tracking
-- Research trend analysis
-- Personalized research insights
-- Reading history and statistics
+### Database & Vector Storage
 
-## System Architecture
+- **Qdrant**: Vector database for semantic search
+- **DynamoDB**: Document metadata storage
 
-ScholarSight follows a modern microservices architecture to ensure scalability, maintainability, and resilience.
+### AI/ML
 
-### Architecture Diagram
+- **Ollama**: Local LLM deployment
+- **RAG (Retrieval-Augmented Generation)**: Architecture for providing context to LLM responses
 
-![Architecture Diagram](./documentation/diagrams/architecture.png)
+### Deployment
 
-### Key Components
+- **Docker**: Containerization of services
+- **Terraform**: Infrastructure as Code for AWS deployment
 
-- **Frontend Application**: React-based SPA with Redux for state management
-- **API Gateway**: Entry point for client requests, handles routing and authentication
-- **Microservices**:
-  - User Service: Handles user authentication and profile management
-  - Research Paper Service: Manages paper storage and retrieval
-  - Search Service: Provides search functionality across multiple data sources
-  - Analytics Service: Processes user data and research metrics
-  - Collaboration Service: Manages shared workspaces and discussions
-- **Databases**:
-  - MongoDB for user data and paper metadata
-  - Elasticsearch for efficient search functionality
-  - Redis for caching frequently accessed data
+## AWS Services Used
 
-## UML Diagrams
+| Service             | Purpose                                                                          |
+| ------------------- | -------------------------------------------------------------------------------- |
+| **EC2**             | Hosts the main application, running Flask backend, Ollama, and Qdrant containers |
+| **S3**              | Stores uploaded PDFs and processed document chunks                               |
+| **DynamoDB**        | Stores metadata about documents, embeddings, and user queries                    |
+| **Secrets Manager** | Secures API keys, credentials, and configuration settings                        |
+| **CloudWatch**      | Monitors application performance and logs                                        |
+| **IAM**             | Manages permissions and access control                                           |
 
-### Class Diagram
-
-The main class relationships within ScholarSight:
-
-![Class Diagram](./documentation/diagrams/class-diagram.png)
-
-### Sequence Diagram
-
-User paper search and save workflow:
-
-![Sequence Diagram](./documentation/diagrams/sequence-diagram.png)
-
-## Technology Stack
-
-- **Frontend:** React, Redux, Material UI
-- **Backend:** Node.js, Express
-- **Database:** MongoDB
-- **Authentication:** JWT
-- **APIs:** Integration with academic databases and citation services
-- **Search:** Elasticsearch
-- **Caching:** Redis
-- **Deployment:** Docker, Kubernetes
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v14 or higher)
-- npm or yarn
-- MongoDB
-- API keys for academic databases (if applicable)
-- Docker (optional for containerized deployment)
-
-### Installation
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/ScholarSight.git
-cd ScholarSight
-```
-
-2. Install dependencies:
-
-```bash
-# Install backend dependencies
-npm install
-
-# Install frontend dependencies
-cd client
-npm install
-cd ..
-```
-
-3. Set up environment variables:
-   Create a `.env` file in the root directory with the following variables:
+## Directory Structure
 
 ```
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-ELASTICSEARCH_URL=your_elasticsearch_url
-REDIS_URL=your_redis_url
+/ScholarSight/
+├── backend/              # Flask application and RAG engine
+├── frontend/             # React/Vite frontend application
+├── terraform/            # IaC scripts for AWS deployment
+├── docs/                 # Documentation and design files
+└── README.md             # This file
 ```
 
-4. Start the development server:
+## Setup Instructions
 
-```bash
-# Run backend and frontend concurrently
-npm run dev
+### Local Development
 
-# Run backend only
-npm run server
+1. **Clone the repository**
 
-# Run frontend only
-npm run client
-```
+   ```bash
+   git clone https://github.com/yourusername/ScholarSight.git
+   cd ScholarSight
+   ```
 
-5. Access the application at `http://localhost:3000`
+2. **Backend Setup**
 
-## Docker Deployment
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
 
-```bash
-# Build the Docker image
-docker build -t scholarsight .
+   # Start Qdrant (requires Docker)
+   docker run -p 6333:6333 qdrant/qdrant
 
-# Run the container
-docker run -p 3000:3000 -p 5000:5000 scholarsight
-```
+   # Start Ollama
+   ollama serve
 
-## Usage
+   # Run the application
+   python run.py
+   ```
 
-### Managing Research Papers
+3. **Frontend Setup**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
-1. Search for papers using the search bar
-2. Save papers to your library
-3. Organize papers into collections
-4. Add notes and annotations
+### AWS Deployment
 
-### Collaboration
+1. **Configure AWS**
 
-1. Create or join a workspace
-2. Invite colleagues
-3. Share papers and collections
-4. Participate in discussions
+   ```bash
+   aws configure  # Enter credentials from AWS Academy
+   ```
 
-### Analytics
+2. **Deploy using Terraform**
 
-1. View citation metrics
-2. Track research trends
-3. Analyze your reading patterns
+   ```bash
+   cd terraform
+   terraform init
+   terraform plan
+   terraform apply
+   ```
 
-## API Documentation
+3. **Upload backend code to EC2**
 
-API documentation is available at `/api/docs` when running the server locally, or visit our [API Documentation](https://scholarsight.io/api/docs) for the production environment.
+   ```bash
+   scp -i <key.pem> -r ../backend/ ec2-user@<EC2_PUBLIC_IP>:/home/ec2-user/
+   ```
 
-## Contributing
+4. **Access the application**
+   - Backend API: `http://<EC2_PUBLIC_IP>:5000/api`
+   - Frontend: Deploy separately or configure for hosting
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## About
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgements
-
-- Academic database providers
-- Open-source libraries used in this project
-- Contributors and testers
-
-Project Link: [https://github.com/Het-07/ScholarSight](https://github.com/Het-07/ScholarSight)
+Copyright (c) Code by Het Patel. All rights reserved.
