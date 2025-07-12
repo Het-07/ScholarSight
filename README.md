@@ -14,12 +14,12 @@ ScholarSight is an intelligent academic research assistant that employs RAG (Ret
 
 ### Component Interaction Flow
 
-1. User uploads PDFs or sends queries through the React frontend
-2. Flask backend processes these requests and manages document processing
-3. Documents are processed, chunked, and stored in Qdrant vector database
-4. Queries are processed by the RAG engine using Ollama for LLM capabilities
-5. Results are returned to frontend for display
-6. AWS services manage infrastructure, storage, and monitoring
+1. User uploads PDFs or sends queries through the React frontend.
+2. Flask backend processes these requests and manages document processing.
+3. Documents are processed, chunked, and stored in Qdrant vector database.
+4. Queries are processed by the RAG engine using Ollama for LLM capabilities.
+5. Results are returned to frontend for display.
+6. AWS services manage infrastructure, storage, and monitoring.
 
 ## Tech Stack
 
