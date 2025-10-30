@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-ScholarSight is an intelligent academic research assistant that employs RAG (Retrieval-Augmented Generation) technology to help researchers efficiently process, analyze, and query academic papers. The system can ingest PDF documents, extract and index their content, and provide accurate answers to complex queries about the research material.
+ScholarSight is an intelligent academic research assistant that employs RAG (Retrieval-Augmented Generation) technology using Ollama Mistral:7b to help researchers efficiently process, analyze, and query academic papers. The system can ingest PDF documents, extract and index their content, and provide accurate answers to complex queries about the research material.
 
 ## Architecture Design
 
